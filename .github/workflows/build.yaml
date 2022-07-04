@@ -1,0 +1,45 @@
+---
+name: Build and Push
+
+on:
+  push:
+    branches:
+      - master
+
+env:
+  DOCKER_HUB_USERNAME: mirel1
+  REPO_NAME: kata
+  DOCKER_HUB_PASSWORD: ${{secrets.DOCKER_HUB_PASSWORD}}
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        shell: bash      
+      
+    steps:
+      - name: Check out code
+        uses: actions/checkout@v3
+
+      - name: import environment variables
+        id: import-env
+        run: |
+          source envs.sh
+          env >> $GITHUB_ENV
+      - name: Git Tag
+        id: git-tag
+        run: |
+          git tag $VERSION
+
+      - name: Login to Docker Hub
+        run: | 
+          docker login -u $DOCKER_HUB_USERNAME -p $DOCKER_HUB_PASSWORD
+
+      - name: Build the Docker image # push The image to the docker hub
+        run: docker build . --file Dockerfile --tag $DOCKER_HUB_USERNAME/$REPO_NAME:$VERSION
+
+      - name: Docker Push
+        run: | 
+          docker push $DOCKER_HUB_USERNAME/$REPO_NAME:$VERSION
+          git push --tags
